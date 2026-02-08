@@ -236,7 +236,7 @@ def train_script(config):
     
     train_dataloader = DataLoader(train_dataset,
                                   batch_size=config.batch_size,
-                                  num_workers=config.num_workers,
+                                  num_workers=config.num_workers,       # Windows=0, Linux=4
                                   shuffle=not config.custom_sampling,
                                   pin_memory=True)
     
@@ -261,7 +261,7 @@ def train_script(config):
     
     query_dataloader_test = DataLoader(query_dataset_test,
                                        batch_size=config.batch_size_eval,
-                                       num_workers=config.num_workers,
+                                       num_workers=config.num_workers,       # Windows=0, Linux=4
                                        shuffle=False,
                                        pin_memory=True)
     

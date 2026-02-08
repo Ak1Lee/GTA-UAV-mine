@@ -3,7 +3,7 @@ import numpy as np
 from tqdm import tqdm
 import gc
 import time
-from torch.cuda.amp import autocast
+# from torch.amp.autocast_mode import autocast
 import torch.nn.functional as F
 from sklearn.metrics import average_precision_score
 from geopy.distance import geodesic
@@ -89,7 +89,7 @@ def predict(train_config, model, dataloader):
         
         for img in bar:
                     
-            with autocast():
+            with torch.amp.autocast(device_type='cuda'):
             
                 img = img.to(train_config.device)
                 img_feature = model(img1=img)
@@ -140,7 +140,7 @@ def evaluate(
     all_scores = []
     with torch.no_grad():
         for gallery_batch in gallery_loader:
-            with autocast():
+            with torch.amp.autocast(device_type='cuda'):
                 gallery_batch = gallery_batch.to(device=config.device)
                 gallery_features_batch = model(img2=gallery_batch)
                 if config.normalize_features:

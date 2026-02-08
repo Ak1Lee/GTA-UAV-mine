@@ -268,6 +268,25 @@ class GTADatasetTrain(Dataset):
         '''
         
         print("\nShuffle Dataset:")
+
+        # 在 Windows 下路径分隔符为 '\'，而标注 JSON 中通常使用 '/'
+        # 这里写一个小的工具函数，把实际文件路径映射到字典里的 key，
+        # 尝试几种常见形式以避免 KeyError。
+        def _resolve_key(path, mapping):
+            # 统一分隔符
+            norm = path.replace('\\', '/')
+            candidates = [norm]
+            parts = norm.split('/')
+            # 尝试使用最后两级路径（例如 "images/xxx.png"）
+            if len(parts) >= 2:
+                candidates.append('/'.join(parts[-2:]))
+            # 只用文件名（例如 "xxx.png"）
+            candidates.append(parts[-1])
+
+            for k in candidates:
+                if k in mapping:
+                    return k
+            return None
         
         pair_pool = copy.deepcopy(self.pairs)
             
@@ -298,21 +317,28 @@ class GTADatasetTrain(Dataset):
                 pair = pair_pool.pop(0)
                 
                 drone_img, sate_img, _ = pair
-                drone_img_name = drone_img.split('/')[-1]
-                sate_img_name = sate_img.split('/')[-1]
-                # print(sate_img_name)
+                # 根据真实路径解析出在字典中的 key，自动适配不同路径写法
+                drone_key = _resolve_key(drone_img, self.pairs_drone2sate_dict)
+                sate_key = _resolve_key(sate_img, self.pairs_sate2drone_dict)
 
-                pair_name = (drone_img_name, sate_img_name)
+                # 如果某些样本在标注字典中找不到对应 key，跳过以避免训练直接崩溃
+                if drone_key is None or sate_key is None:
+                    break_counter += 1
+                    if break_counter >= 16384:
+                        break
+                    continue
 
-                if drone_img_name not in drone_batch and sate_img_name not in sate_batch and pair_name not in pairs_epoch:
+                pair_name = (drone_key, sate_key)
+
+                if drone_key not in drone_batch and sate_key not in sate_batch and pair_name not in pairs_epoch:
 
                     current_batch.append(pair)
                     pairs_epoch.add(pair_name)
                     
-                    pairs_drone2sate = self.pairs_drone2sate_dict[drone_img_name]
+                    pairs_drone2sate = self.pairs_drone2sate_dict[drone_key]
                     for sate in pairs_drone2sate:
                         sate_batch.add(sate)
-                    pairs_sate2drone = self.pairs_sate2drone_dict[sate_img_name]
+                    pairs_sate2drone = self.pairs_sate2drone_dict[sate_key]
                     for drone in pairs_sate2drone:
                         drone_batch.add(drone)
                     
@@ -400,7 +426,7 @@ class GTADatasetEval(Dataset):
             if query_mode == 'D2S':
                 sate_img_dir_list, sate_img_list = get_sate_data(sate_img_dir)
                 for sate_img_dir, sate_img in zip(sate_img_dir_list, sate_img_list):
-                    self.images_path.append(os.path.join(data_root, sate_img_dir, sate_img))
+                    self.images_path.append(os.path.join(sate_img_dir, sate_img))
                     self.images_name.append(sate_img)
 
                     sate_img_name = sate_img.replace('.png', '')
@@ -417,7 +443,7 @@ class GTADatasetEval(Dataset):
                 for sate_img_dir, sate_img in zip(sate_img_dir_list, sate_img_list):
                     if sate_img not in pairs_sate2drone_dict.keys():
                         continue
-                    self.images_path.append(os.path.join(data_root, sate_img_dir, sate_img))
+                    self.images_path.append(os.path.join(sate_img_dir, sate_img))
                     self.images_name.append(sate_img)
 
                     sate_img_name = sate_img.replace('.png', '')

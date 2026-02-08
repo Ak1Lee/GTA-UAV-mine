@@ -160,6 +160,8 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 .idea/
+.vscode/
+.claude/
 
 satellite/tiles
 
@@ -174,6 +176,16 @@ satellite/tiles
 data/
 pretrained/
 .DS_Store
+nul
+
+# 数据集/大文件：不同步到 Git，避免传到 AutoDL 时带上一整份数据
+**/GTA-UAV-LR*/
+**/GTA-UAV-data/
+**/BaiduNetdiskDownload/
+*.safetensors
+# DeepGTAV 预编译大 dll，避免超过 GitHub 50MB 建议
+DeepGTAV/**/bin/Release/
+**/opencv_world*.dll
 
 Game4Loc/pretrained/
 Game4Loc/pretrained.zip
