@@ -54,6 +54,8 @@ class GTADatasetTrain(Dataset):
                  train_ratio=1.0,
                  group_len=2):
         super().__init__()
+        # 统一路径分隔符，避免 Windows 风格路径在 Linux（如 AutoDL）上报错
+        data_root = os.path.normpath(data_root.replace('\\', '/'))
         
         with open(os.path.join(data_root, pairs_meta_file), 'r', encoding='utf-8') as f:
             pairs_meta_data = json.load(f)
@@ -390,6 +392,8 @@ class GTADatasetEval(Dataset):
                  transforms=None,
                  ):
         super().__init__()
+        # 统一路径分隔符，避免 Windows 风格路径在 Linux（如 AutoDL）上报错
+        data_root = os.path.normpath(data_root.replace('\\', '/'))
         
         with open(os.path.join(data_root, pairs_meta_file), 'r', encoding='utf-8') as f:
             pairs_meta_data = json.load(f)
