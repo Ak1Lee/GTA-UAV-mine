@@ -459,7 +459,9 @@ def parse_args():
    
     parser.add_argument('--test_pairs_meta_file', type=str, default='cross-area-drone2sate-test.json', help='Test metafile path')
 
-    parser.add_argument('--model', type=str, default='vit_base_patch16_rope_reg1_gap_256.sbb_in1k', help='Model architecture')
+    parser.add_argument('--model', type=str, default='vit_base_patch16_rope_reg1_gap_256.sbb_in1k',
+                    help='Model architecture (timm). e.g. vit_base_patch16_rope_reg1_gap_256.sbb_in1k, '
+                         'vit_base_patch14_dinov2.lvd142m, vit_large_patch14_dinov2.lvd142e')
 
     parser.add_argument('--no_share_weights', action='store_true', help='Train without sharing wieghts')
 

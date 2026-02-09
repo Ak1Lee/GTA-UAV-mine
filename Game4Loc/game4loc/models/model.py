@@ -40,13 +40,13 @@ class DesModel(nn.Module):
         self.model_name = model_name
         self.img_size = img_size
         if share_weights:
-            if "vit" in model_name or "swin" in model_name:
-                # automatically change interpolate pos-encoding to img_size
+            if "vit" in model_name or "swin" in model_name or "dinov2" in model_name:
+                # automatically change interpolate pos-encoding to img_size (ViT/Swin/DINOv2)
                 self.model = timm.create_model(model_name, pretrained=pretrained, num_classes=0, img_size=img_size) 
             else:
                 self.model = timm.create_model(model_name, pretrained=pretrained, num_classes=0)
         else:
-            if "vit" in model_name or "swin" in model_name:
+            if "vit" in model_name or "swin" in model_name or "dinov2" in model_name:
                 self.model1 = timm.create_model(model_name, pretrained=pretrained, num_classes=0, img_size=img_size)
                 self.model2 = timm.create_model(model_name, pretrained=pretrained, num_classes=0, img_size=img_size) 
             else:
