@@ -37,3 +37,8 @@ python train_gta.py --data_root "\root\autodl-tmp\dataset\GTA-UAV-LR\GTA-UAV-LR-
 # DINOv2 (timm): base / large / giant, reduce batch_size if OOM
 # python train_gta.py --data_root <dataset_dir> --train_pairs_meta_file "cross-area-drone2sate-train.json" --test_pairs_meta_file "cross-area-drone2sate-test.json" --gpu_ids 0 --with_weight --k 5 --epoch 5 --model 'vit_base_patch14_dinov2.lvd142m' --lr 0.0001 --batch_size 16
 # python train_gta.py ... --model 'vit_large_patch14_dinov2.lvd142e' --batch_size 8
+# train dinov2:
+python train_gta.py --data_root "\root\autodl-tmp\dataset\GTA-UAV-LR\GTA-UAV-LR-baidu" --train_pairs_meta_file "cross-area-drone2sate-train.json" --test_pairs_meta_file "cross-area-drone2sate-test.json" --gpu_ids 0 --with_weight --k 5 --epoch 5 --model 'vit_base_patch14_dinov2.lvd142m' --lr 0.0001 --batch_size 32------------------------------[Evaluate]------------------------------
+Extract Features and Compute Scores:
+Processing each query: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 9056/9056 [00:20<00:00, 446.80it/s]
+Recall@1: 46.0799 - Recall@5: 75.0994 - Recall@10: 81.6696 - Recall@top1: 94.8101 - AP: 58.1938 - SDM@1: 0.7330 - SDM@3: 0.6659 - SDM@5: 0.6252 - Dis@1: 533.3091 - Dis@3: 758.4565 - Dis@5: 889.2196
