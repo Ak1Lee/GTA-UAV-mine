@@ -30,6 +30,8 @@ python train_gta.py --data_root "\root\autodl-tmp\dataset\GTA-UAV-LR\GTA-UAV-LR-
 Extract Features and Compute Scores:
 Processing each query: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 9056/9056 [00:19<00:00, 454.19it/s]
 Recall@1: 61.2853 - Recall@5: 85.3578 - Recall@10: 89.2005 - Recall@top1: 96.9302 - AP: 71.6573 - SDM@1: 0.8215 - SDM@3: 0.7559 - SDM@5: 0.7088 - Dis@1: 333.0190 - Dis@3: 527.0131 - Dis@5: 662.3857
+Recall@1: 62.3785 - Recall@5: 85.6338 - Recall@10: 89.6643 - Recall@top1: 96.8860 - AP: 72.3459 - SDM@1: 0.8234 - SDM@3: 0.7608 - SDM@5: 0.7146 - Dis@1: 338.8207 - Dis@3: 515.9145 - Dis@5: 650.5140
+很奇怪啊 不同的epoch会影响结果？
 
 # need to do Cross-area baseline setting with weighted-InfoNCE k=5 with medium model
 python train_gta.py --data_root "\root\autodl-tmp\dataset\GTA-UAV-LR\GTA-UAV-LR-baidu" --train_pairs_meta_file "cross-area-drone2sate-train.json" --test_pairs_meta_file "cross-area-drone2sate-test.json" --gpu_ids 0 --with_weight --k 5 --epoch 5 --model 'vit_medium_patch16_rope_reg1_gap_256.sbb_in1k' --lr 0.0001 --batch_size 32
@@ -42,3 +44,10 @@ python train_gta.py --data_root "\root\autodl-tmp\dataset\GTA-UAV-LR\GTA-UAV-LR-
 Extract Features and Compute Scores:
 Processing each query: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 9056/9056 [00:20<00:00, 446.80it/s]
 Recall@1: 46.0799 - Recall@5: 75.0994 - Recall@10: 81.6696 - Recall@top1: 94.8101 - AP: 58.1938 - SDM@1: 0.7330 - SDM@3: 0.6659 - SDM@5: 0.6252 - Dis@1: 533.3091 - Dis@3: 758.4565 - Dis@5: 889.2196
+
+# 20 epoch ViT
+# need to do Cross-area baseline setting with weighted-InfoNCE k=5 with medium model
+python train_gta.py --data_root "\root\autodl-tmp\dataset\GTA-UAV-LR\GTA-UAV-LR-baidu" --train_pairs_meta_file "cross-area-drone2sate-train.json" --test_pairs_meta_file "cross-area-drone2sate-test.json" --gpu_ids 0 --with_weight --k 5 --epoch 20 --model 'vit_base_patch16_rope_reg1_gap_256.sbb_in1k' --lr 0.0001 --batch_size 32
+Recall@1: 53.9863 - Recall@5: 79.6489 - Recall@10: 85.2915 - Recall@top1: 96.3560 - AP: 65.0409 - SDM@1: 0.7859 - SDM@3: 0.7221 - SDM@5: 0.6757 - Dis@1: 419.6235 - Dis@3: 620.2992 - Dis@5: 766.6094
+
+
