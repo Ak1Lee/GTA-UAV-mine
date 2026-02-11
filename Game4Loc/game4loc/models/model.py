@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 import timm
 import numpy as np
 import torch.nn as nn
@@ -36,17 +37,23 @@ class DesModel(nn.Module):
                  model_hub='timm',
                  global_pool=None):
         '''
-        global_pool: None=模型默认 | 'token'=CLS | 'avg'=GAP | 'gem'=GeM
+        global_pool: None=模型默认 | 'token'=CLS | 'avg'=GAP(手动) | 'gem'=GeM(手动)
+        对 DINOv2 等模型，'avg'/'gem' 用 forward_features+手动池化，避免预训练权重不匹配
         '''
         super(DesModel, self).__init__()
         self.share_weights = share_weights
         self.model_name = model_name
         self.img_size = img_size
+        self.global_pool = global_pool
+        self.gem_p = 3.0  # GeM 指数
+
         create_kwargs = dict(pretrained=pretrained, num_classes=0)
         if "vit" in model_name or "swin" in model_name or "dinov2" in model_name:
             create_kwargs["img_size"] = img_size
-        if global_pool is not None:
-            create_kwargs["global_pool"] = global_pool
+        # DINOv2 等传 global_pool='avg' 会改变结构导致预训练加载失败，改用 forward_features+手动池化
+        if global_pool not in ('avg', 'gem'):
+            if global_pool is not None:
+                create_kwargs["global_pool"] = global_pool
         if share_weights:
             if "vit" in model_name or "swin" in model_name or "dinov2" in model_name:
                 self.model = timm.create_model(model_name, **create_kwargs)
@@ -84,30 +91,39 @@ class DesModel(nn.Module):
     def freeze_layers(self, frozen_blocks=10, frozen_stages=[0,0,0,0]):
         pass
 
+    def _get_features(self, backbone, img):
+        """对 avg/gem 用 forward_features+手动池化，兼容 DINOv2 预训练"""
+        if self.global_pool in ('avg', 'gem') and hasattr(backbone, 'forward_features'):
+            x = backbone.forward_features(img)  # (B, 1+N, D)
+            patch_tokens = x[:, 1:]  # 去掉 CLS
+            if self.global_pool == 'avg':
+                feat = patch_tokens.mean(dim=1)
+            else:  # gem
+                p = self.gem_p
+                feat = (patch_tokens.pow(p).mean(dim=1) + 1e-6).pow(1.0 / p)
+            return feat
+        return backbone(img)
+
     def forward(self, img1=None, img2=None):
 
         if self.share_weights:
             if img1 is not None and img2 is not None:
-                image_features1 = self.model(img1)     
-                image_features2 = self.model(img2)
-                return image_features1, image_features2            
+                image_features1 = self._get_features(self.model, img1)
+                image_features2 = self._get_features(self.model, img2)
+                return image_features1, image_features2
             elif img1 is not None:
-                image_features = self.model(img1)
-                return image_features
+                return self._get_features(self.model, img1)
             else:
-                image_features = self.model(img2)
-                return image_features
+                return self._get_features(self.model, img2)
         else:
             if img1 is not None and img2 is not None:
-                image_features1 = self.model1(img1)     
-                image_features2 = self.model2(img2)
-                return image_features1, image_features2            
+                image_features1 = self._get_features(self.model1, img1)
+                image_features2 = self._get_features(self.model2, img2)
+                return image_features1, image_features2
             elif img1 is not None:
-                image_features = self.model1(img1)
-                return image_features
+                return self._get_features(self.model1, img1)
             else:
-                image_features = self.model2(img2)
-                return image_features
+                return self._get_features(self.model2, img2)
 
     def offset_pred(self, img_feature1, img_feature2):
         offset = self.MLP(torch.cat((img_feature1, img_feature2), dim=1))

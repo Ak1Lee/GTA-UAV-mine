@@ -119,7 +119,7 @@ class DesModelWithVLAD(nn.Module):
         create_kwargs = dict(pretrained=pretrained, num_classes=0)
         if "vit" in model_name or "swin" in model_name or "dinov2" in model_name:
             create_kwargs["img_size"] = img_size
-        if global_pool is not None:
+        if global_pool not in ('avg', 'gem') and global_pool is not None:
             create_kwargs["global_pool"] = global_pool
         if share_weights:
             if "vit" in model_name or "swin" in model_name or "dinov2" in model_name:
