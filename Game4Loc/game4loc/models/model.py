@@ -33,22 +33,29 @@ class DesModel(nn.Module):
                  share_weights=True,
                  train_with_recon=False,
                  train_with_offset=False,
-                 model_hub='timm'):
-                 
+                 model_hub='timm',
+                 global_pool=None):
+        '''
+        global_pool: None=模型默认 | 'token'=CLS | 'avg'=GAP | 'gem'=GeM
+        '''
         super(DesModel, self).__init__()
         self.share_weights = share_weights
         self.model_name = model_name
         self.img_size = img_size
+        create_kwargs = dict(pretrained=pretrained, num_classes=0)
+        if "vit" in model_name or "swin" in model_name or "dinov2" in model_name:
+            create_kwargs["img_size"] = img_size
+        if global_pool is not None:
+            create_kwargs["global_pool"] = global_pool
         if share_weights:
             if "vit" in model_name or "swin" in model_name or "dinov2" in model_name:
-                # automatically change interpolate pos-encoding to img_size (ViT/Swin/DINOv2)
-                self.model = timm.create_model(model_name, pretrained=pretrained, num_classes=0, img_size=img_size) 
+                self.model = timm.create_model(model_name, **create_kwargs)
             else:
                 self.model = timm.create_model(model_name, pretrained=pretrained, num_classes=0)
         else:
             if "vit" in model_name or "swin" in model_name or "dinov2" in model_name:
-                self.model1 = timm.create_model(model_name, pretrained=pretrained, num_classes=0, img_size=img_size)
-                self.model2 = timm.create_model(model_name, pretrained=pretrained, num_classes=0, img_size=img_size) 
+                self.model1 = timm.create_model(model_name, **create_kwargs)
+                self.model2 = timm.create_model(model_name, **create_kwargs)
             else:
                 self.model1 = timm.create_model(model_name, pretrained=pretrained, num_classes=0)
                 self.model2 = timm.create_model(model_name, pretrained=pretrained, num_classes=0)

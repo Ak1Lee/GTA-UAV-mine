@@ -36,6 +36,9 @@ class Configuration:
     
     # Override model image size
     img_size: int = 384
+
+    # Pooling for ViT/DINOv2: None=默认(CLS) | token | avg | gem
+    global_pool: str = None
  
     # Please Ignore
     freeze_layers: bool = False
@@ -162,17 +165,21 @@ def train_script(config):
     # Model                                                                       #
     #-----------------------------------------------------------------------------#
     print("\nModel: {}".format(config.model))
+    if config.global_pool is not None:
+        print("Global pool: {} (token=CLS, avg=GAP, gem=GeM)".format(config.global_pool))
 
     if config.with_netvlad:
         model = DesModelWithVLAD(model_name=config.model, 
                     pretrained=True,
                     img_size=config.img_size,
-                    share_weights=config.share_weights)
+                    share_weights=config.share_weights,
+                    global_pool=config.global_pool)
     else:
         model = DesModel(model_name=config.model, 
                         pretrained=True,
                         img_size=config.img_size,
-                        share_weights=config.share_weights)
+                        share_weights=config.share_weights,
+                        global_pool=config.global_pool)
                         
     data_config = model.get_config()
     print(data_config)
@@ -463,6 +470,9 @@ def parse_args():
                     help='Model architecture (timm). e.g. vit_base_patch16_rope_reg1_gap_256.sbb_in1k, '
                          'vit_base_patch14_dinov2.lvd142m, vit_large_patch14_dinov2.lvd142e')
 
+    parser.add_argument('--global_pool', type=str, default=None,
+                    help='Pooling: token=CLS, avg=GAP, gem=GeM. None=model default (e.g. CLS for DINOv2)')
+
     parser.add_argument('--no_share_weights', action='store_true', help='Train without sharing wieghts')
 
     parser.add_argument('--freeze_layers', action='store_true', help='Freeze layers for training')
@@ -534,6 +544,7 @@ if __name__ == '__main__':
     config.k = args.k
     config.checkpoint_start = args.checkpoint_start
     config.model = args.model
+    config.global_pool = args.global_pool
     config.lr = args.lr
     config.share_weights = not(args.no_share_weights)
     config.custom_sampling = not(args.no_custom_sampling)

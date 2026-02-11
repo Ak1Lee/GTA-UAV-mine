@@ -26,6 +26,9 @@ class Configuration:
     
     # Override model image size
     img_size: int = 384
+
+    # Pooling: None | token | avg | gem (must match training when loading checkpoint)
+    global_pool: str = None
     
     # Evaluation
     batch_size: int = 128
@@ -74,7 +77,8 @@ def eval_script(config):
     model = DesModel(config.model,
                     pretrained=True,
                     img_size=config.img_size,
-                    share_weights=config.share_weights)
+                    share_weights=config.share_weights,
+                    global_pool=config.global_pool)
                           
     data_config = model.get_config()
     print(data_config)
@@ -218,6 +222,8 @@ def parse_args():
 
     parser.add_argument('--model', type=str, default='vit_base_patch16_rope_reg1_gap_256.sbb_in1k', help='Model architecture')
 
+    parser.add_argument('--global_pool', type=str, default=None, help='token|avg|gem, must match training')
+
     parser.add_argument('--no_share_weights', action='store_true', help='Model not sharing wieghts')
 
     parser.add_argument('--with_match', action='store_true', help='Test with post-process image matching (GIM, etc)')
@@ -248,6 +254,7 @@ if __name__ == '__main__':
     config.gpu_ids = args.gpu_ids
     config.checkpoint_start = args.checkpoint_start
     config.model = args.model
+    config.global_pool = args.global_pool
     config.share_weights = not(args.no_share_weights)
     config.test_mode = args.test_mode
     config.query_mode = args.query_mode
