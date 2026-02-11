@@ -45,7 +45,7 @@ class DesModel(nn.Module):
         self.model_name = model_name
         self.img_size = img_size
         self.global_pool = global_pool
-        self.gem_p = 3.0  # GeM 指数
+        self.gem_p = 2.0  # GeM 指数，2 更稳定（x^2 恒非负）
 
         create_kwargs = dict(pretrained=pretrained, num_classes=0)
         if "vit" in model_name or "swin" in model_name or "dinov2" in model_name:
@@ -98,9 +98,9 @@ class DesModel(nn.Module):
             patch_tokens = x[:, 1:]  # 去掉 CLS
             if self.global_pool == 'avg':
                 feat = patch_tokens.mean(dim=1)
-            else:  # gem
+            else:  # gem: 用 |x|^p 避免负值导致 p^(1/p) 数值问题
                 p = self.gem_p
-                feat = (patch_tokens.pow(p).mean(dim=1) + 1e-6).pow(1.0 / p)
+                feat = (patch_tokens.abs().clamp(min=1e-6).pow(p).mean(dim=1) + 1e-6).pow(1.0 / p)
             return feat
         return backbone(img)
 
