@@ -53,5 +53,6 @@ Recall@1: 53.9863 - Recall@5: 79.6489 - Recall@10: 85.2915 - Recall@top1: 96.356
 
 # 5 epoch dinov2 gap
 python train_gta.py --data_root "\root\autodl-tmp\dataset\GTA-UAV-LR\GTA-UAV-LR-baidu" --train_pairs_meta_file "cross-area-drone2sate-train.json" --test_pairs_meta_file "cross-area-drone2sate-test.json" --gpu_ids 0 --with_weight --k 5 --epoch 5 --model 'vit_base_patch14_dinov2.lvd142m' --lr 0.0001 --batch_size 32 --global_pool avg
+Recall@1: 44.0040 - Recall@5: 73.6749 - Recall@10: 80.9077 - Recall@top1: 95.0640 - AP: 56.5931 - SDM@1: 0.7215 - SDM@3: 0.6571 - SDM@5: 0.6184 - Dis@1: 592.7422 - Dis@3: 799.0147 - Dis@5: 913.0639
 # 5 epoch dinov2 gem
 python train_gta.py --data_root "\root\autodl-tmp\dataset\GTA-UAV-LR\GTA-UAV-LR-baidu" --train_pairs_meta_file "cross-area-drone2sate-train.json" --test_pairs_meta_file "cross-area-drone2sate-test.json" --gpu_ids 0 --with_weight --k 5 --epoch 5 --model 'vit_base_patch14_dinov2.lvd142m' --lr 0.0001 --batch_size 32 --global_pool gem
