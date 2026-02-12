@@ -47,33 +47,52 @@ class DPNModule(nn.Module):
         p = torch.sigmoid(p) * (self.p_max - self.p_min) + self.p_min  # (B, D)
         # point-wise power: sign(x) * |x|^p
         p = p.unsqueeze(1)  # (B, 1, D)
-        abs_x = x.abs().clamp(min=1e-7)
-        out = torch.sign(x) * (abs_x ** p)
+        abs_x = x.abs().clamp(min=1e-6)
+        out = torch.sign(x) * torch.pow(abs_x, p)
         return out
 
 
 # -----------------------------------------------------------------------------
-# softP: L2 Norm -> MLP -> Sigmoid -> Residual
+# softP
 # -----------------------------------------------------------------------------
 class SoftPModule(nn.Module):
-    """softP output processing.
-    Flow: L2 Norm -> MLP (Linear-ReLU-Linear) -> Sigmoid -> Residual (x + gate * delta).
     """
-    def __init__(self, dim: int, hidden_ratio: float = 0.5):
+    SAGE Soft Probing (SoftP) Module
+    Paper Ref: Eq. (1), (2), (3)
+    Logic: L2 Norm (Scalar) -> MLP (Scalar Output) -> Reweight (1 + beta) * x
+    """
+    def __init__(self, dim: int, hidden_dim: int = 64, alpha: float = 1.0):
         super().__init__()
-        hidden = max(64, int(dim * hidden_ratio))
+        self.alpha = alpha
+        
+        # 论文 cite: 269 "compact predictor (a two-layer MLP)"
+        # 输入是 1 (scalar L2 norm)，输出是 1 (scalar weight)
         self.mlp = nn.Sequential(
-            nn.Linear(dim, hidden),
+            nn.Linear(1, hidden_dim),
             nn.ReLU(inplace=True),
-            nn.Linear(hidden, dim),
+            nn.Linear(hidden_dim, 1),
+            nn.Sigmoid()
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # x: (B, N, D)
-        x_norm = F.normalize(x, dim=-1)
-        delta = self.mlp(x_norm)
-        gate = torch.sigmoid(delta)
-        return x + gate * delta
+        
+        # 1. 计算每个 patch 的 L2 范数 (Scalar)
+        # cite: 269 "s_i = ||X_i||_2"
+        # 加上 clamp 防止 0 梯度
+        norms = torch.norm(x, p=2, dim=-1, keepdim=True).clamp(min=1e-6)  # (B, N, 1)
+        
+        # 2. 预测加权系数 beta
+        # cite: 270 "beta_i = alpha * sigmoid(phi(s_i))"
+        # cite: 272 "0 <= beta_i <= alpha"
+        beta = self.alpha * self.mlp(norms)  # (B, N, 1)
+        
+        # 3. 残差加权 (Rescaling)
+        # cite: 274 "X_bar = (1 + beta_i) * X_i"
+        # 这是一个广播乘法，不改变特征方向，只放大模长
+        out = x * (1 + beta)
+        
+        return out
 
 
 # -----------------------------------------------------------------------------

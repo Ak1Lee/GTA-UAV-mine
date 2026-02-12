@@ -191,6 +191,9 @@ def train_script(config):
             checkpoint_path=config.eva_checkpoint_path,
             freeze_backbone=config.freeze_backbone,
         )
+        trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        total = sum(p.numel() for p in model.parameters())
+        print(f"eva_gta: freeze_backbone={config.freeze_backbone} | trainable {trainable/1e6:.2f}M / {total/1e6:.2f}M params")
     else:
         model = DesModel(model_name=config.model, 
                         pretrained=True,
