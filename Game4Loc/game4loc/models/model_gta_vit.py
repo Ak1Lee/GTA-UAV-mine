@@ -131,7 +131,7 @@ class EvaBlockWithDPN(nn.Module):
         self.gamma_1 = nn.Parameter(init_values * torch.ones(dim)) if init_values is not None else None
         self.drop_path1 = DropPath(drop_path) if drop_path > 0. else nn.Identity()
 
-        self.dpn = DPNModule(dim, hidden_ratio=0.25)
+        self.dpn = DPNModule(dim, hidden_dim=64)
 
         self.norm2 = norm_layer(dim)
         hidden_features = int(dim * mlp_ratio)
