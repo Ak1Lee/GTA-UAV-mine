@@ -61,6 +61,11 @@ Recall@1: 22.6148 - Recall@5: 47.9240 - Recall@10: 57.6303 - Recall@top1: 87.257
 
 # 20 epoch eva_gta 后4层block添加dpn 尾层添加softp
 python train_gta.py --model eva_gta --data_root "game4loc\dataset\GTA-UAV-LR\GTA-UAV-LR-baidu" --train_pairs_meta_file "cross-area-drone2sate-train.json"  --test_pairs_meta_file "cross-area-drone2sate-test.json"  --gpu_ids 0 --with_weight --k 5 --epochs 20 --lr 0.0001 --batch_size 32
-
+python train_gta.py --model eva_gta --data_root "game4loc\dataset\GTA-UAV-LR\GTA-UAV-LR-baidu" --train_pairs_meta_file "cross-area-drone2sate-train.json"  --test_pairs_meta_file "cross-area-drone2sate-test.json"  --gpu_ids 0 --with_weight --k 5 --epochs 20 --lr 0.0001 --batch_size 32
+python train_gta.py --model eva_gta --data_root "\root\autodl-tmp\dataset\GTA-UAV-LR\GTA-UAV-LR-baidu" --train_pairs_meta_file "cross-area-drone2sate-train.json"  --test_pairs_meta_file "cross-area-drone2sate-test.json"  --gpu_ids 0 --with_weight --k 5 --epochs 20 --lr 0.0001 --batch_size 64
+------------------------------[Evaluate]------------------------------
+Extract Features and Compute Scores:
+Processing each query: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 9056/9056 [00:20<00:00, 446.27it/s]
+Recall@1: 18.1206 - Recall@5: 40.3048 - Recall@10: 50.6625 - Recall@top1: 82.3322 - AP: 28.4332 - SDM@1: 0.5151 - SDM@3: 0.4847 - SDM@5: 0.4654 - Dis@1: 1119.5372 - Dis@3: 1256.7233 - Dis@5: 1323.3381
 
 python scripts/debug_nan.py --model eva_gta --data_root "game4loc\dataset\GTA-UAV-LR\GTA-UAV-LR-baidu" --batch_size 4
