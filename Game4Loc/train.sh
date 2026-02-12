@@ -57,3 +57,7 @@ Recall@1: 44.0040 - Recall@5: 73.6749 - Recall@10: 80.9077 - Recall@top1: 95.064
 # 5 epoch dinov2 gem
 python train_gta.py --data_root "\root\autodl-tmp\dataset\GTA-UAV-LR\GTA-UAV-LR-baidu" --train_pairs_meta_file "cross-area-drone2sate-train.json" --test_pairs_meta_file "cross-area-drone2sate-test.json" --gpu_ids 0 --with_weight --k 5 --epoch 5 --model 'vit_base_patch14_dinov2.lvd142m' --lr 0.0001 --batch_size 32 --global_pool gem
 Recall@1: 22.6148 - Recall@5: 47.9240 - Recall@10: 57.6303 - Recall@top1: 87.2571 - AP: 33.8336 - SDM@1: 0.5512 - SDM@3: 0.5144 - SDM@5: 0.4921 - Dis@1: 1056.5646 - Dis@3: 1194.5820 - Dis@5: 1267.7858
+
+
+# 20 epoch eva_gta 后4层block添加dpn 尾层添加softp
+python train_gta.py --model eva_gta --data_root "game4loc\dataset\GTA-UAV-LR\GTA-UAV-LR-baidu" --train_pairs_meta_file "cross-area-drone2sate-train.json"  --test_pairs_meta_file "cross-area-drone2sate-test.json"  --gpu_ids 0 --with_weight --k 5 --epochs 20 --lr 0.0001 --batch_size 32

@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 from game4loc.dataset.gta import GTADatasetEval, get_transforms
 from game4loc.evaluate.gta import evaluate
 from game4loc.models.model import DesModel
+from game4loc.models.model_gta_vit import DesModelGTA
 
 
 def parse_tuple(s):
@@ -29,6 +30,11 @@ class Configuration:
 
     # Pooling: None | token | avg | gem (must match training when loading checkpoint)
     global_pool: str = None
+    share_weights: bool = True
+
+    # EvaGTA
+    dpn_layers: int = 4
+    eva_checkpoint_path: str = None
     
     # Evaluation
     batch_size: int = 128
@@ -74,11 +80,23 @@ def eval_script(config):
     print("\nModel: {}".format(config.model))
 
 
-    model = DesModel(config.model,
-                    pretrained=True,
-                    img_size=config.img_size,
-                    share_weights=config.share_weights,
-                    global_pool=config.global_pool)
+    if config.model == 'eva_gta':
+        model = DesModelGTA(
+            model_name='eva_gta',
+            pretrained=True,
+            img_size=config.img_size,
+            share_weights=config.share_weights,
+            global_pool=config.global_pool or 'avg',
+            dpn_layers=getattr(config, 'dpn_layers', 4),
+            checkpoint_path=config.eva_checkpoint_path,
+            freeze_backbone=False,
+        )
+    else:
+        model = DesModel(config.model,
+                        pretrained=True,
+                        img_size=config.img_size,
+                        share_weights=config.share_weights,
+                        global_pool=config.global_pool)
                           
     data_config = model.get_config()
     print(data_config)
@@ -90,8 +108,22 @@ def eval_script(config):
     # load pretrained Checkpoint    
     if config.checkpoint_start is not None:  
         print("Start from:", config.checkpoint_start)
-        model_state_dict = torch.load(config.checkpoint_start)  
-        model.load_state_dict(model_state_dict, strict=True)     
+        model_state_dict = torch.load(config.checkpoint_start, map_location='cpu')
+        if isinstance(model_state_dict, dict) and 'model' in model_state_dict:
+            model_state_dict = model_state_dict.get('model', model_state_dict)
+        if isinstance(model_state_dict, dict) and 'state_dict' in model_state_dict:
+            model_state_dict = model_state_dict['state_dict']
+        # eva_gta 可能带 module. 前缀 (DataParallel)
+        if any(k.startswith('module.') for k in model_state_dict):
+            from collections import OrderedDict
+            new_sd = OrderedDict()
+            for k, v in model_state_dict.items():
+                if k.startswith('module.'):
+                    new_sd[k[7:]] = v
+                else:
+                    new_sd[k] = v
+            model_state_dict = new_sd
+        model.load_state_dict(model_state_dict, strict=False)     
 
     # Data parallel
     print("GPUs available:", torch.cuda.device_count())  

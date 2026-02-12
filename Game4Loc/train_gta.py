@@ -17,6 +17,7 @@ from game4loc.evaluate.gta import evaluate
 from game4loc.loss import InfoNCE, WeightedInfoNCE, GroupInfoNCE, TripletLoss
 from game4loc.models.model import DesModel
 from game4loc.models.model_netvlad import DesModelWithVLAD
+from game4loc.models.model_gta_vit import DesModelGTA
 
 
 def parse_tuple(s):
@@ -43,6 +44,11 @@ class Configuration:
     # Please Ignore
     freeze_layers: bool = False
     frozen_stages = [0,0,0,0]
+
+    # EvaGTA (DPN+softP): 冻结 backbone 训练
+    freeze_backbone: bool = True
+    dpn_layers: int = 4
+    eva_checkpoint_path: str = None
 
     # Training with sharing weights
     share_weights: bool = True
@@ -174,6 +180,17 @@ def train_script(config):
                     img_size=config.img_size,
                     share_weights=config.share_weights,
                     global_pool=config.global_pool)
+    elif config.model == 'eva_gta':
+        model = DesModelGTA(
+            model_name='eva_gta',
+            pretrained=True,
+            img_size=config.img_size,
+            share_weights=config.share_weights,
+            global_pool=config.global_pool or 'avg',
+            dpn_layers=config.dpn_layers,
+            checkpoint_path=config.eva_checkpoint_path,
+            freeze_backbone=config.freeze_backbone,
+        )
     else:
         model = DesModel(model_name=config.model, 
                         pretrained=True,
@@ -370,22 +387,22 @@ def train_script(config):
     #-----------------------------------------------------------------------------#
     # Zero Shot                                                                   #
     #-----------------------------------------------------------------------------#
-    if config.zero_shot:
-        print("\n{}[{}]{}".format(30*"-", "Zero Shot", 30*"-"))  
+    # if config.zero_shot:
+    #     print("\n{}[{}]{}".format(30*"-", "Zero Shot", 30*"-"))  
 
-        r1_test = evaluate(config=config,
-                           model=model,
-                           query_loader=query_dataloader_test,
-                           gallery_loader=gallery_dataloader_test, 
-                           query_list=query_img_list,
-                           gallery_list=gallery_img_list,
-                           pairs_dict=pairs_drone2sate_dict,
-                           ranks_list=[1, 5, 10],
-                           query_center_loc_xy_list=query_center_loc_xy_list,
-                           gallery_center_loc_xy_list=gallery_center_loc_xy_list,
-                           gallery_topleft_loc_xy_list=gallery_topleft_loc_xy_list,
-                           step_size=1000,
-                           cleanup=True)
+    #     r1_test = evaluate(config=config,
+    #                        model=model,
+    #                        query_loader=query_dataloader_test,
+    #                        gallery_loader=gallery_dataloader_test, 
+    #                        query_list=query_img_list,
+    #                        gallery_list=gallery_img_list,
+    #                        pairs_dict=pairs_drone2sate_dict,
+    #                        ranks_list=[1, 5, 10],
+    #                        query_center_loc_xy_list=query_center_loc_xy_list,
+    #                        gallery_center_loc_xy_list=gallery_center_loc_xy_list,
+    #                        gallery_topleft_loc_xy_list=gallery_topleft_loc_xy_list,
+    #                        step_size=1000,
+    #                        cleanup=True)
            
             
     #-----------------------------------------------------------------------------#
@@ -467,8 +484,13 @@ def parse_args():
     parser.add_argument('--test_pairs_meta_file', type=str, default='cross-area-drone2sate-test.json', help='Test metafile path')
 
     parser.add_argument('--model', type=str, default='vit_base_patch16_rope_reg1_gap_256.sbb_in1k',
-                    help='Model architecture (timm). e.g. vit_base_patch16_rope_reg1_gap_256.sbb_in1k, '
-                         'vit_base_patch14_dinov2.lvd142m, vit_large_patch14_dinov2.lvd142e')
+                    help='Model architecture. eva_gta=DPN+softP(Eva); or timm name, e.g. vit_base_patch16_rope_reg1_gap_256.sbb_in1k')
+
+    parser.add_argument('--no_freeze_backbone', action='store_true',
+                    help='For eva_gta: do not freeze backbone (default: freeze, only train DPN+softP)')
+    parser.add_argument('--dpn_layers', type=int, default=4, help='Number of last blocks with DPN (eva_gta)')
+    parser.add_argument('--eva_checkpoint_path', type=str, default=None,
+                    help='Path to Eva pretrained .bin (eva_gta). Default: ./pretrained/vit_base_patch16_rope_reg1_gap_256/pytorch_model.bin')
 
     parser.add_argument('--global_pool', type=str, default=None,
                     help='Pooling: token=CLS, avg=GAP, gem=GeM. None=model default (e.g. CLS for DINOv2)')
@@ -545,6 +567,9 @@ if __name__ == '__main__':
     config.checkpoint_start = args.checkpoint_start
     config.model = args.model
     config.global_pool = args.global_pool
+    config.freeze_backbone = not args.no_freeze_backbone
+    config.dpn_layers = args.dpn_layers
+    config.eva_checkpoint_path = args.eva_checkpoint_path
     config.lr = args.lr
     config.share_weights = not(args.no_share_weights)
     config.custom_sampling = not(args.no_custom_sampling)
