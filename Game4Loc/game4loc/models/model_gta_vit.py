@@ -131,7 +131,7 @@ class EvaBlockWithDPN(nn.Module):
         self.gamma_1 = nn.Parameter(init_values * torch.ones(dim)) if init_values is not None else None
         self.drop_path1 = DropPath(drop_path) if drop_path > 0. else nn.Identity()
 
-        self.dpn = DPNModule(dim, hidden_dim=64)
+        self.dpn = DPNModule(dim, hidden_ratio=0.25)
 
         self.norm2 = norm_layer(dim)
         hidden_features = int(dim * mlp_ratio)
@@ -263,7 +263,7 @@ class EvaGTA(nn.Module):
             new_blocks[i] = new_blk
         self.blocks = nn.ModuleList(new_blocks)
         self.norm = base.norm
-        self.softp = SoftPModule(base.embed_dim, hidden_ratio=0.5)
+        self.softp = SoftPModule(base.embed_dim, hidden_dim=64)
 
     def freeze_backbone(self):
         """冻结主干，仅训练 DPN 与 softP."""
