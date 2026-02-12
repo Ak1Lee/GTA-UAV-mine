@@ -387,22 +387,22 @@ def train_script(config):
     #-----------------------------------------------------------------------------#
     # Zero Shot                                                                   #
     #-----------------------------------------------------------------------------#
-    # if config.zero_shot:
-    #     print("\n{}[{}]{}".format(30*"-", "Zero Shot", 30*"-"))  
+    if config.zero_shot:
+        print("\n{}[{}]{}".format(30*"-", "Zero Shot", 30*"-"))  
 
-    #     r1_test = evaluate(config=config,
-    #                        model=model,
-    #                        query_loader=query_dataloader_test,
-    #                        gallery_loader=gallery_dataloader_test, 
-    #                        query_list=query_img_list,
-    #                        gallery_list=gallery_img_list,
-    #                        pairs_dict=pairs_drone2sate_dict,
-    #                        ranks_list=[1, 5, 10],
-    #                        query_center_loc_xy_list=query_center_loc_xy_list,
-    #                        gallery_center_loc_xy_list=gallery_center_loc_xy_list,
-    #                        gallery_topleft_loc_xy_list=gallery_topleft_loc_xy_list,
-    #                        step_size=1000,
-    #                        cleanup=True)
+        r1_test = evaluate(config=config,
+                           model=model,
+                           query_loader=query_dataloader_test,
+                           gallery_loader=gallery_dataloader_test, 
+                           query_list=query_img_list,
+                           gallery_list=gallery_img_list,
+                           pairs_dict=pairs_drone2sate_dict,
+                           ranks_list=[1, 5, 10],
+                           query_center_loc_xy_list=query_center_loc_xy_list,
+                           gallery_center_loc_xy_list=gallery_center_loc_xy_list,
+                           gallery_topleft_loc_xy_list=gallery_topleft_loc_xy_list,
+                           step_size=1000,
+                           cleanup=True)
            
             
     #-----------------------------------------------------------------------------#
