@@ -539,6 +539,9 @@ def parse_args():
     parser.add_argument('--k', type=float, default=5, help='weighted k')
 
     parser.add_argument('--no_custom_sampling', action='store_true', help='Train without custom sampling')
+
+    parser.add_argument('--no_mixed_precision', action='store_true',
+                    help='禁用 AMP，eva_gta 若出现 NaN 可尝试此选项')
     
     parser.add_argument('--train_ratio', type=float, default=1.0, help='Train on ratio of data')
 
@@ -582,5 +585,6 @@ if __name__ == '__main__':
     config.test_mode = args.test_mode
     config.query_mode = args.query_mode
     config.train_ratio = args.train_ratio
+    config.mixed_precision = not args.no_mixed_precision
 
     train_script(config)

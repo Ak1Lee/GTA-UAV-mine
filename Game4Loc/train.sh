@@ -61,3 +61,6 @@ Recall@1: 22.6148 - Recall@5: 47.9240 - Recall@10: 57.6303 - Recall@top1: 87.257
 
 # 20 epoch eva_gta 后4层block添加dpn 尾层添加softp
 python train_gta.py --model eva_gta --data_root "game4loc\dataset\GTA-UAV-LR\GTA-UAV-LR-baidu" --train_pairs_meta_file "cross-area-drone2sate-train.json"  --test_pairs_meta_file "cross-area-drone2sate-test.json"  --gpu_ids 0 --with_weight --k 5 --epochs 20 --lr 0.0001 --batch_size 32
+
+
+python scripts/debug_nan.py --model eva_gta --data_root "game4loc\dataset\GTA-UAV-LR\GTA-UAV-LR-baidu" --batch_size 4

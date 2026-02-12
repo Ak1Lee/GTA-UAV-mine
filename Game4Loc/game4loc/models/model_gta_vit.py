@@ -37,6 +37,19 @@ class DPNModule(nn.Module):
         self.act = nn.ReLU(inplace=True)
         # sigmoid output maps to power in [0.5, 2]: p = 0.5 + 1.5 * sigmoid
         self.p_min, self.p_max = 0.5, 2.0
+        # === 关键改进：初始化为恒等映射 (p ≈ 1.0) ===
+        # 这样在训练初期，DPN 不会干扰 Backbone 的特征
+        self._init_weights()
+
+    def _init_weights(self):
+        # 1. fc1 用常规初始化
+        nn.init.xavier_normal_(self.fc1.weight)
+        nn.init.zeros_(self.fc1.bias)
+        
+        # 2. fc2 权重设为 0，偏置设为 -0.693
+        # 这样初始输出 h=0 -> p = sigmoid(-0.693)*(1.5)+0.5 = 0.33*1.5+0.5 ≈ 1.0
+        nn.init.zeros_(self.fc2.weight)
+        nn.init.constant_(self.fc2.bias, -0.693)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # x: (B, N, D)
@@ -45,11 +58,11 @@ class DPNModule(nn.Module):
         h = self.act(h)
         p = self.fc2(h)
         p = torch.sigmoid(p) * (self.p_max - self.p_min) + self.p_min  # (B, D)
-        # point-wise power: sign(x) * |x|^p
+        # point-wise power: sign(x) * |x|^p，clamp 防 AMP 下溢出/NaN
         p = p.unsqueeze(1)  # (B, 1, D)
-        abs_x = x.abs().clamp(min=1e-6)
+        abs_x = x.abs().clamp(min=1e-6, max=1e3)
         out = torch.sign(x) * torch.pow(abs_x, p)
-        return out
+        return out.clamp(min=-1e2, max=1e2)
 
 
 # -----------------------------------------------------------------------------
