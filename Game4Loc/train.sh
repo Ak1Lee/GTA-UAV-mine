@@ -71,4 +71,8 @@ Recall@1: 18.1206 - Recall@5: 40.3048 - Recall@10: 50.6625 - Recall@top1: 82.332
 python scripts/debug_nan.py --model eva_gta --data_root "game4loc\dataset\GTA-UAV-LR\GTA-UAV-LR-baidu" --batch_size 4
 
 # 5 epoch eva_gta 0dpn 尾层添加softp 全量微调5 epoch
-python train_gta.py --model eva_gta  --dpn_layers 0  --no_freeze_backbone  --data_root "\root\autodl-tmp\dataset\GTA-UAV-LR\GTA-UAV-LR-baidu"   --train_pairs_meta_file "cross-area-drone2sate-train.json"  --test_pairs_meta_file "cross-area-drone2sate-test.json" --gpu_ids 0 --with_weight --k 5 --epochs 5 --lr_backbone 0.0001 --lr_extra 0.001 --batch_size 32
+python train_gta.py --model eva_gta  --dpn_layers 0  --no_freeze_backbone  --data_root "\root\autodl-tmp\dataset\GTA-UAV-LR\GTA-UAV-LR-baidu"   --train_pairs_meta_file "cross-area-drone2sate-train.json"  --test_pairs_meta_file "cross-area-drone2sate-test.json" --gpu_ids 0 --with_weight --k 5 --epochs 5 --lr_backbone 0.00008 --lr_extra 0.0005 --batch_size 32
+Recall@1: 60.2584 - Recall@5: 83.7898 - Recall@10: 88.3944 - Recall@top1: 96.5216 - AP: 70.4298 - SDM@1: 0.8113 - SDM@3: 0.7502 - SDM@5: 0.7039 - Dis@1: 367.1190 - Dis@3: 543.8847 - Dis@5: 685.1971
+
+python train_gta.py --model eva_gta  --dpn_layers 0  --no_freeze_backbone  --data_root "\root\autodl-tmp\dataset\GTA-UAV-LR\GTA-UAV-LR-baidu"   --train_pairs_meta_file "cross-area-drone2sate-train.json"  --test_pairs_meta_file "cross-area-drone2sate-test.json" --gpu_ids 0 --with_weight --k 5 --epochs 5 --lr_backbone 0.0001 --lr_extra 0.0005 --batch_size 32
+Recall@1: 58.8339 - Recall@5: 83.1935 - Recall@10: 87.9086 - Recall@top1: 96.4554 - AP: 69.1889 - SDM@1: 0.8046 - SDM@3: 0.7403 - SDM@5: 0.6944 - Dis@1: 397.7988 - Dis@3: 592.1241 - Dis@5: 734.1847
