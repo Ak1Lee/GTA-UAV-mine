@@ -97,6 +97,8 @@ class Configuration:
     
     # Learning Rate
     lr: float = 0.001                    # 1 * 10^-4 for ViT | 1 * 10^-1 for CNN
+    lr_backbone: float = None            # eva_gta 时 ViT 主干学习率，None 则用 lr
+    lr_extra: float = None               # eva_gta 时 softP/DPN/logit_scale 学习率，None 则用 lr
     scheduler: str = "cosine"            # "polynomial" | "cosine" | "constant" | None
     warmup_epochs: int = 0.1
     lr_end: float = 0.0001               #  only for "polynomial"
@@ -335,8 +337,29 @@ def train_script(config):
     #-----------------------------------------------------------------------------#
     # optimizer                                                                   #
     #-----------------------------------------------------------------------------#
+    use_lr_groups = (config.model == 'eva_gta' and
+                     (config.lr_backbone is not None or config.lr_extra is not None))
 
-    if config.decay_exclue_bias:
+    if use_lr_groups:
+        lr_backbone = config.lr_backbone if config.lr_backbone is not None else config.lr
+        lr_extra = config.lr_extra if config.lr_extra is not None else config.lr
+        m = model.module if hasattr(model, 'module') else model
+        backbone_params, extra_params = [], []
+        for n, p in m.named_parameters():
+            if not p.requires_grad:
+                continue
+            if 'softp' in n or 'dpn' in n or 'logit_scale' in n:
+                extra_params.append(p)
+            else:
+                backbone_params.append(p)
+        optimizer_parameters = []
+        if backbone_params:
+            optimizer_parameters.append({"params": backbone_params, "lr": lr_backbone, "weight_decay": 0.01})
+        if extra_params:
+            optimizer_parameters.append({"params": extra_params, "lr": lr_extra, "weight_decay": 0.01})
+        optimizer = torch.optim.AdamW(optimizer_parameters)
+        print(f"eva_gta 分层学习率: backbone={lr_backbone} (n={len(backbone_params)}), extra={lr_extra} (n={len(extra_params)})")
+    elif config.decay_exclue_bias:
         param_optimizer = list(model.named_parameters())
         no_decay = ["bias", "LayerNorm.bias"]
         optimizer_parameters = [
@@ -429,11 +452,12 @@ def train_script(config):
                            optimizer=optimizer,
                            scheduler=scheduler,
                            scaler=scaler,
-                           with_weight=config.with_weight)
-        
-        print("Epoch: {}, Train Loss = {:.3f}, Lr = {:.6f}".format(epoch,
-                                                                   train_loss,
-                                                                   optimizer.param_groups[0]['lr']))
+                           with_weight=config.with_weight)  
+        # print("Epoch: {}, Train Loss = {:.3f}, Lr = {:.6f}".format(epoch,
+        #                                                            train_loss,
+        #                                                            optimizer.param_groups[0]['lr']))
+        lr_str = ", ".join(f"g{i}={pg['lr']:.2e}" for i, pg in enumerate(optimizer.param_groups))
+        print("Epoch: {}, Train Loss = {:.3f}, Lr = [{}]".format(epoch, train_loss, lr_str))
         
         # evaluate
         if (epoch % config.eval_every_n_epoch == 0 and epoch != 0) or epoch == config.epochs:
@@ -507,6 +531,10 @@ def parse_args():
     parser.add_argument('--epochs', type=int, default=5, help='Epochs')
 
     parser.add_argument('--lr', type=float, default=0.001, help='Learning rate')
+    parser.add_argument('--lr_backbone', type=float, default=None,
+                    help='eva_gta 时 ViT 主干学习率 (如 1e-5)，不设则用 --lr')
+    parser.add_argument('--lr_extra', type=float, default=None,
+                    help='eva_gta 时 softP/DPN/logit_scale 学习率 (如 1e-3)，不设则用 --lr')
 
     parser.add_argument('--gpu_ids', type=parse_tuple, default=(0,1), help='GPU ID')
 
@@ -577,6 +605,8 @@ if __name__ == '__main__':
     config.dpn_layers = args.dpn_layers
     config.eva_checkpoint_path = args.eva_checkpoint_path
     config.lr = args.lr
+    config.lr_backbone = args.lr_backbone
+    config.lr_extra = args.lr_extra
     config.share_weights = not(args.no_share_weights)
     config.custom_sampling = not(args.no_custom_sampling)
     config.freeze_layers = args.freeze_layers

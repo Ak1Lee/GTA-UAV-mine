@@ -69,3 +69,6 @@ Processing each query: 100%|█████████████████�
 Recall@1: 18.1206 - Recall@5: 40.3048 - Recall@10: 50.6625 - Recall@top1: 82.3322 - AP: 28.4332 - SDM@1: 0.5151 - SDM@3: 0.4847 - SDM@5: 0.4654 - Dis@1: 1119.5372 - Dis@3: 1256.7233 - Dis@5: 1323.3381
 
 python scripts/debug_nan.py --model eva_gta --data_root "game4loc\dataset\GTA-UAV-LR\GTA-UAV-LR-baidu" --batch_size 4
+
+# 5 epoch eva_gta 0dpn 尾层添加softp 全量微调5 epoch
+python train_gta.py --model eva_gta  --dpn_layers 0  --no_freeze_backbone  --data_root "\root\autodl-tmp\dataset\GTA-UAV-LR\GTA-UAV-LR-baidu"   --train_pairs_meta_file "cross-area-drone2sate-train.json"  --test_pairs_meta_file "cross-area-drone2sate-test.json" --gpu_ids 0 --with_weight --k 5 --epochs 5 --lr_backbone 0.0001 --lr_extra 0.001 --batch_size 32

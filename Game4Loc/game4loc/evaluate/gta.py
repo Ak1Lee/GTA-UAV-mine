@@ -139,6 +139,7 @@ def evaluate(
 
     all_scores = []
     with torch.no_grad():
+        # gallery：分批提取 satellite 特征
         for gallery_batch in gallery_loader:
             with torch.amp.autocast(device_type='cuda'):
                 gallery_batch = gallery_batch.to(device=config.device)
@@ -146,7 +147,7 @@ def evaluate(
                 if config.normalize_features:
                     gallery_features_batch = F.normalize(gallery_features_batch, dim=-1)
 
-            scores_batch = img_features_query @ gallery_features_batch.T
+            scores_batch = img_features_query @ gallery_features_batch.T  #(N_query, N_gallery)
             all_scores.append(scores_batch.cpu())
     
     all_scores = torch.cat(all_scores, dim=1).numpy()
