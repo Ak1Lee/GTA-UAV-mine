@@ -2,11 +2,13 @@
 Online Graph Creation (OGC) + Greedy Weighted Sampling (GWS)
 参考 SAGE 论文，为 GTA-UAV 跨视角地理定位任务实现难样本挖掘采样策略。
 
-核心思想：
+核心思想 (OGC-Guided MES Shuffle):
 1. 每个 epoch 开始时，用当前模型提取所有 satellite 特征
 2. 构建亲和度图 (视觉相似度 / IOU×视觉相似度)
-3. 贪心采样最难区分的 satellite 组成 clique → 构造 hard negative batch
-4. 映射 satellite clique → (drone, satellite, weight) training pairs (带 MES 约束)
+3. 贪心采样最难区分的 satellite 组成 clique
+4. 按 clique 顺序重排所有 training pairs，传给 MES shuffle
+   → MES 逻辑不变，但输入顺序使 hard negatives 自然聚集到同一 batch
+   → 所有 pairs 都参与训练，覆盖率 100%
 """
 
 import os
@@ -232,61 +234,58 @@ class OGCSampler:
         return cliques
 
     # ------------------------------------------------------------------
-    # Phase 4: 映射 satellite clique → training pairs (带 MES)
+    # Phase 4: 按 clique 顺序重排 pairs (OGC-Guided MES)
     # ------------------------------------------------------------------
 
-    def _map_cliques_to_pairs(self, cliques, dataset):
+    def _cliques_to_pair_order(self, cliques, dataset):
         """
-        将 satellite clique 映射为 (drone, satellite, weight) 训练 pairs。
-        在每个 batch 内施加 MES 约束。
+        将 satellite cliques 转为 pair 排列顺序，供 MES shuffle 消费。
 
-        Args:
-            cliques: list of list[int] (satellite 索引)
-            dataset: GTADatasetTrain
+        前 hard_ratio 部分按 clique 分组排列 (视觉相似的 satellite 排在一起),
+        剩余部分随机打乱。MES 顺序扫描时，同一 clique 的 pairs 自然进入同一 batch。
 
         Returns:
-            hard_samples: list of (drone_path, sate_path, weight)
+            reordered_pairs: list of (drone_path, sate_path, weight)
         """
-        hard_samples = []
-
-        for clique in cliques:
-            batch_pairs = []
-            used_drones = set()
-            used_sates = set()
-
+        # 建立 sate_name → clique_idx 映射
+        sate_to_clique = {}
+        for cidx, clique in enumerate(cliques):
             for sate_idx in clique:
-                sate_name = self.sate_names[sate_idx]
-                candidate_pairs = list(self.sate_to_pairs.get(sate_name, []))
-                random.shuffle(candidate_pairs)
+                sate_to_clique[self.sate_names[sate_idx]] = cidx
 
-                for pair in candidate_pairs:
-                    drone_path, sate_path, weight = pair
-                    drone_name = os.path.basename(drone_path)
+        # 按 clique 分组收集 pairs
+        clique_groups = {}  # cidx → [pairs]
+        non_clique_pairs = []
 
-                    # MES 检查: drone 不能已在 batch 的排除集中
-                    if drone_name in used_drones:
-                        continue
+        for pair in dataset.pairs:
+            sate_name = os.path.basename(pair[1])
+            cidx = sate_to_clique.get(sate_name)
+            if cidx is not None:
+                clique_groups.setdefault(cidx, []).append(pair)
+            else:
+                non_clique_pairs.append(pair)
 
-                    # MES 检查: satellite 不能已在 batch 的排除集中
-                    sate_key = os.path.basename(sate_path)
-                    if sate_key in used_sates:
-                        continue
+        # 按 clique 顺序排列，clique 内随机打乱
+        clique_ordered_pairs = []
+        for cidx in range(len(cliques)):
+            group = clique_groups.get(cidx, [])
+            random.shuffle(group)
+            clique_ordered_pairs.extend(group)
 
-                    # 通过 MES 检查，加入 batch
-                    batch_pairs.append(pair)
+        # hard_ratio 截断
+        n_hard_target = int(len(dataset.pairs) * self.hard_ratio)
+        hard_part = clique_ordered_pairs[:n_hard_target]
 
-                    # 更新排除集 (同 shuffle() 逻辑)
-                    drone2sates = dataset.pairs_drone2sate_dict.get(drone_name, [])
-                    for s in drone2sates:
-                        used_sates.add(s)
-                    sate2drones = dataset.pairs_sate2drone_dict.get(sate_key, [])
-                    for d in sate2drones:
-                        used_drones.add(d)
-                    break  # 已选中一个 pair，处理下一个 satellite
+        # 剩余部分随机打乱
+        remaining = clique_ordered_pairs[n_hard_target:] + non_clique_pairs
+        random.shuffle(remaining)
 
-            hard_samples.extend(batch_pairs)
+        n_in_cliques = len(clique_ordered_pairs)
+        n_total = len(dataset.pairs)
+        print("  Pair reorder: {}/{} in cliques ({:.1%}), hard_target={}".format(
+            n_in_cliques, n_total, n_in_cliques / n_total, len(hard_part)))
 
-        return hard_samples
+        return hard_part + remaining
 
     # ------------------------------------------------------------------
     # Phase 5: 主入口
@@ -296,61 +295,40 @@ class OGCSampler:
         """
         主入口，替代 dataset.shuffle()。
 
-        流程:
+        OGC-Guided MES Shuffle:
         1. 提取 satellite 特征
         2. 构建亲和度图
-        3. GWS 贪心采样 clique
-        4. 映射 clique → pairs (带 MES)
-        5. 与 random MES 样本混合
-        6. 写入 dataset.samples
+        3. GWS 贪心采样 satellite cliques
+        4. 按 clique 顺序重排 pairs (视觉相似的排在一起)
+        5. 将重排后的 pairs 传给 dataset.shuffle(pair_order=...)
+           MES 逻辑不变，但输入顺序使 hard negatives 自然聚集到同一 batch
         """
-        print("\nOGC Sampling (mode={}, hard_ratio={:.0%}):".format(self.mode, self.hard_ratio))
+        print("\nOGC-Guided Shuffle (mode={}, hard_ratio={:.0%}):".format(self.mode, self.hard_ratio))
         t_total = time.time()
 
         # Step 1: 特征提取
         t0 = time.time()
         features = self.extract_satellite_features()
-        t_feat = time.time() - t0
         print("  Feature extraction: {:.1f}s ({} unique satellites, dim={})".format(
-            t_feat, len(self.sate_names), features.shape[1]))
+            time.time() - t0, len(self.sate_names), features.shape[1]))
 
         # Step 2: 构建亲和度图
         t0 = time.time()
         W = self.build_affinity_graph(features)
-        t_graph = time.time() - t0
         print("  Graph construction: {:.1f}s (mean affinity={:.4f})".format(
-            t_graph, W[W > 0].mean() if (W > 0).any() else 0))
+            time.time() - t0, W[W > 0].mean() if (W > 0).any() else 0))
 
         # Step 3: GWS
         t0 = time.time()
         cliques = self.greedy_weighted_sampling(W)
-        t_gws = time.time() - t0
         print("  GWS: {:.1f}s ({} cliques, avg size={:.1f})".format(
-            t_gws, len(cliques),
+            time.time() - t0, len(cliques),
             np.mean([len(c) for c in cliques]) if cliques else 0))
 
-        # Step 4: 映射 satellite clique → training pairs
-        hard_samples = self._map_cliques_to_pairs(cliques, dataset)
+        # Step 4: 按 clique 顺序重排 pairs
+        pair_order = self._cliques_to_pair_order(cliques, dataset)
 
-        # Step 5: 混合 hard + random
-        n_target = len(dataset.pairs)
-        n_hard = min(len(hard_samples), int(n_target * self.hard_ratio))
-        hard_samples = hard_samples[:n_hard]
+        # Step 5: 调用 MES shuffle，传入重排后的 pairs 顺序
+        dataset.shuffle(pair_order=pair_order)
 
-        # Random MES 部分: 复用 dataset.shuffle() 逻辑
-        dataset.shuffle()
-        random_samples = dataset.samples
-
-        n_random = n_target - n_hard
-        random_samples = random_samples[:n_random]
-
-        # 合并: hard batches 在前 (特征最新鲜), random 在后
-        dataset.samples = hard_samples + random_samples
-
-        t_total = time.time() - t_total
-        print("  Total: {:.1f}s - {} hard + {} random = {} samples".format(
-            t_total, len(hard_samples), len(random_samples), len(dataset.samples)))
-        if dataset.samples:
-            print("  First: {} | Last: {}".format(
-                os.path.basename(dataset.samples[0][1]),
-                os.path.basename(dataset.samples[-1][1])))
+        print("  OGC-Guided total: {:.1f}s".format(time.time() - t_total))

@@ -264,12 +264,20 @@ class GTADatasetTrain(Dataset):
         print("First Element: {} - Last Element: {}".format(self.samples[0][1], self.samples[-1][1]))  
     
 
-    def shuffle(self, ):
+    def shuffle(self, pair_order=None):
         '''
-        Implementation of Mutually Exclusive Sampling process
+        Implementation of Mutually Exclusive Sampling process.
+
+        Args:
+            pair_order: 可选的 pair 排列顺序。如果提供，则使用该顺序代替随机打乱。
+                        用于 OGC-Guided Shuffle: 按 satellite clique 顺序排列，
+                        使视觉相似的 satellite 自然聚集到同一 batch。
         '''
-        
-        print("\nShuffle Dataset:")
+
+        if pair_order is not None:
+            print("\nShuffle Dataset (OGC-Guided):")
+        else:
+            print("\nShuffle Dataset:")
 
         # 在 Windows 下路径分隔符为 '\'，而标注 JSON 中通常使用 '/'
         # 这里写一个小的工具函数，把实际文件路径映射到字典里的 key，
@@ -289,11 +297,12 @@ class GTADatasetTrain(Dataset):
                 if k in mapping:
                     return k
             return None
-        
-        pair_pool = copy.deepcopy(self.pairs)
-            
-        # Shuffle pairs order
-        random.shuffle(pair_pool)
+
+        if pair_order is not None:
+            pair_pool = copy.deepcopy(pair_order)
+        else:
+            pair_pool = copy.deepcopy(self.pairs)
+            random.shuffle(pair_pool)
         
         sate_batch = set()
         drone_batch = set()

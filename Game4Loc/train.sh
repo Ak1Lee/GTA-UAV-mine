@@ -109,9 +109,12 @@ python train_gta.py --model eva_gta --use_ogc --ogc_start_epoch 3 --epochs 5
 # 先测试一下 小样本
 python train_gta.py --data_root "game4loc\dataset\GTA-UAV-LR\GTA-UAV-LR-baidu" --train_pairs_meta_file "mini-cross-area-drone2sate-train.json" --test_pairs_meta_file "mini-cross-area-drone2sate-test.json" --gpu_ids 0 --epoch 2 --model "vit_medium_patch16_rope_reg1_gap_256.sbb_in1k" --lr 0.0001 --batch_size 8 --use_ogc --ogc_mode visual --ogc_hard_ratio 0.5
 # 能跑 Recall@1: 40.2386 - Recall@5: 66.3774 - Recall@10: 74.4035 - Recall@top1: 91.2148 - AP: 51.6939 - SDM@1: 0.7264 - SDM@3: 0.6576 - SDM@5: 0.6163 - Dis@1: 610.9821 - Dis@3: 851.1047 - Dis@5: 979.4390
-# 跑一下baseline+OGC
+# 跑一下baseline+OGC，普通的baseline5epoch是60% recall@1 
 python train_gta.py --data_root "\root\autodl-tmp\dataset\GTA-UAV-LR\GTA-UAV-LR-baidu" --train_pairs_meta_file "cross-area-drone2sate-train.json" --test_pairs_meta_file "cross-area-drone2sate-test.json" --gpu_ids 0 --with_weight --k 5 --epoch 5 --model 'vit_base_patch16_rope_reg1_gap_256.sbb_in1k' --lr 0.0001 --batch_size 32 --use_ogc --ogc_mode visual --ogc_hard_ratio 0.5
 Recall@1: 57.1665 - Recall@5: 82.2990 - Recall@10: 87.6325 - Recall@top1: 96.5216 - AP: 68.0256 - SDM@1: 0.8174 - SDM@3: 0.7534 - SDM@5: 0.7078 - Dis@1: 354.9579 - Dis@3: 547.5454 - Dis@5: 678.0882
 
 python train_gta.py --data_root "\root\autodl-tmp\dataset\GTA-UAV-LR\GTA-UAV-LR-baidu" --train_pairs_meta_file "cross-area-drone2sate-train.json" --test_pairs_meta_file "cross-area-drone2sate-test.json" --gpu_ids 0 --with_weight --k 5 --epoch 5 --model 'vit_base_patch16_rope_reg1_gap_256.sbb_in1k' --lr 0.0001 --batch_size 32 --use_ogc --ogc_mode visual --ogc_hard_ratio 0.7
 Recall@1: 60.8657 - Recall@5: 84.7063 - Recall@10: 89.0459 - Recall@top1: 96.9192 - AP: 71.0301 - SDM@1: 0.8192 - SDM@3: 0.7590 - SDM@5: 0.7139 - Dis@1: 353.3149 - Dis@3: 523.4259 - Dis@5: 660.4570
+
+# 新的策略 先做采样 最后做MSE
+python train_gta.py --data_root "\root\autodl-tmp\dataset\GTA-UAV-LR\GTA-UAV-LR-baidu" --train_pairs_meta_file "cross-area-drone2sate-train.json" --test_pairs_meta_file "cross-area-drone2sate-test.json" --gpu_ids 0 --with_weight --k 5 --epoch 5 --model 'vit_base_patch16_rope_reg1_gap_256.sbb_in1k' --lr 0.0001 --batch_size 32 --use_ogc --ogc_mode visual --ogc_hard_ratio 0.5
