@@ -118,3 +118,5 @@ Recall@1: 60.8657 - Recall@5: 84.7063 - Recall@10: 89.0459 - Recall@top1: 96.919
 
 # 新的策略 先做采样 最后做MSE
 python train_gta.py --data_root "\root\autodl-tmp\dataset\GTA-UAV-LR\GTA-UAV-LR-baidu" --train_pairs_meta_file "cross-area-drone2sate-train.json" --test_pairs_meta_file "cross-area-drone2sate-test.json" --gpu_ids 0 --with_weight --k 5 --epoch 5 --model 'vit_base_patch16_rope_reg1_gap_256.sbb_in1k' --lr 0.0001 --batch_size 32 --use_ogc --ogc_mode visual --ogc_hard_ratio 0.5
+Recall@1: 64.9072 - Recall@5: 88.5049 - Recall@10: 91.8728 - Recall@top1: 97.2063 - AP: 74.9602 - SDM@1: 0.8358 - SDM@3: 0.7682 - SDM@5: 0.7175 - Dis@1: 309.8878 - Dis@3: 520.6740 - Dis@5: 679.8537
+
