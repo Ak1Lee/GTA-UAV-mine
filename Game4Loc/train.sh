@@ -76,3 +76,18 @@ Recall@1: 60.2584 - Recall@5: 83.7898 - Recall@10: 88.3944 - Recall@top1: 96.521
 
 python train_gta.py --model eva_gta  --dpn_layers 0  --no_freeze_backbone  --data_root "\root\autodl-tmp\dataset\GTA-UAV-LR\GTA-UAV-LR-baidu"   --train_pairs_meta_file "cross-area-drone2sate-train.json"  --test_pairs_meta_file "cross-area-drone2sate-test.json" --gpu_ids 0 --with_weight --k 5 --epochs 5 --lr_backbone 0.0001 --lr_extra 0.0005 --batch_size 32
 Recall@1: 58.8339 - Recall@5: 83.1935 - Recall@10: 87.9086 - Recall@top1: 96.4554 - AP: 69.1889 - SDM@1: 0.8046 - SDM@3: 0.7403 - SDM@5: 0.6944 - Dis@1: 397.7988 - Dis@3: 592.1241 - Dis@5: 734.1847
+
+python train_gta.py \
+  --model eva_gta \
+  --dpn_layers 0 \
+  --no_freeze_backbone \
+  --data_root "\root\autodl-tmp\dataset\GTA-UAV-LR\GTA-UAV-LR-baidu" \
+  --train_pairs_meta_file "cross-area-drone2sate-train.json" \
+  --test_pairs_meta_file "cross-area-drone2sate-test.json" \
+  --gpu_ids 0 \
+  --with_weight \
+  --k 5 \
+  --epochs 15 \
+  --lr_backbone 0.00001 \
+  --lr_extra 0.0005 \
+  --batch_size 32
