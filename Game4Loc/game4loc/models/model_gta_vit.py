@@ -321,8 +321,8 @@ class EvaGTA(nn.Module):
         return x if pre_logits else self.head(x)
 
     def forward(self, rgb, d=None):
-        x = self.forward_features(rgb, d)
-        x = self.forward_head(x)
+        x = self.forward_features(rgb, d) # (B, 577, 768)
+        x = self.forward_head(x) # forward_head 里对 patch 做 GAP (B, 768)
         return x
 
     def get_config(self):

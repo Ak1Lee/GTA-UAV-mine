@@ -19,6 +19,8 @@ from game4loc.models.model import DesModel
 from game4loc.models.model_netvlad import DesModelWithVLAD
 from game4loc.models.model_gta_vit import DesModelGTA
 
+from game4loc.sampler.ogc_sampler import OGCSampler
+
 
 def parse_tuple(s):
     try:
@@ -131,6 +133,12 @@ class Configuration:
     
     # make cudnn deterministic
     cudnn_deterministic: bool = False
+
+    # OGC Sampling
+    use_ogc: bool = False                    # 启用 OGC 难样本采样
+    ogc_mode: str = 'visual'                 # 'visual' | 'visual_iou'
+    ogc_hard_ratio: float = 0.5              # OGC hard 样本占比 (0~1)
+    ogc_start_epoch: int = 1                 # 从第几个 epoch 开始 OGC
 
     data_root: str = "./data/GTA-UAV-data"
 
@@ -268,7 +276,21 @@ def train_script(config):
                                   num_workers=config.num_workers,       # Windows=0, Linux=4
                                   shuffle=not config.custom_sampling,
                                   pin_memory=True)
-    
+
+    # OGC Sampler
+    ogc_sampler = None
+    if config.use_ogc:
+        ogc_sampler = OGCSampler(
+            dataset=train_dataset,
+            model=model,
+            val_transforms=val_transforms,
+            config=config,
+            mode=config.ogc_mode,
+            hard_ratio=config.ogc_hard_ratio,
+        )
+        print("OGC Sampler initialized (mode={}, hard_ratio={}, start_epoch={})".format(
+            config.ogc_mode, config.ogc_hard_ratio, config.ogc_start_epoch))
+
     # Test query
     if config.query_mode == 'D2S':
         query_view = 'drone'
@@ -413,22 +435,22 @@ def train_script(config):
     #-----------------------------------------------------------------------------#
     # Zero Shot                                                                   #
     #-----------------------------------------------------------------------------#
-    if config.zero_shot:
-        print("\n{}[{}]{}".format(30*"-", "Zero Shot", 30*"-"))  
+    # if config.zero_shot:
+    #     print("\n{}[{}]{}".format(30*"-", "Zero Shot", 30*"-"))  
 
-        r1_test = evaluate(config=config,
-                           model=model,
-                           query_loader=query_dataloader_test,
-                           gallery_loader=gallery_dataloader_test, 
-                           query_list=query_img_list,
-                           gallery_list=gallery_img_list,
-                           pairs_dict=pairs_drone2sate_dict,
-                           ranks_list=[1, 5, 10],
-                           query_center_loc_xy_list=query_center_loc_xy_list,
-                           gallery_center_loc_xy_list=gallery_center_loc_xy_list,
-                           gallery_topleft_loc_xy_list=gallery_topleft_loc_xy_list,
-                           step_size=1000,
-                           cleanup=True)
+    #     r1_test = evaluate(config=config,
+    #                        model=model,
+    #                        query_loader=query_dataloader_test,
+    #                        gallery_loader=gallery_dataloader_test, 
+    #                        query_list=query_img_list,
+    #                        gallery_list=gallery_img_list,
+    #                        pairs_dict=pairs_drone2sate_dict,
+    #                        ranks_list=[1, 5, 10],
+    #                        query_center_loc_xy_list=query_center_loc_xy_list,
+    #                        gallery_center_loc_xy_list=gallery_center_loc_xy_list,
+    #                        gallery_topleft_loc_xy_list=gallery_topleft_loc_xy_list,
+    #                        step_size=1000,
+    #                        cleanup=True)
            
             
     #-----------------------------------------------------------------------------#
@@ -443,7 +465,10 @@ def train_script(config):
         print("\n{}[Epoch: {}]{}".format(30*"-", epoch, 30*"-"))
 
         if config.custom_sampling:
-            train_dataloader.dataset.shuffle()
+            if ogc_sampler is not None and epoch >= config.ogc_start_epoch:
+                ogc_sampler.reorder_samples(train_dataset)
+            else:
+                train_dataloader.dataset.shuffle()
         
         train_loss = train_with_weight(config,
                            model,
@@ -573,6 +598,15 @@ def parse_args():
     
     parser.add_argument('--train_ratio', type=float, default=1.0, help='Train on ratio of data')
 
+    # OGC Sampling
+    parser.add_argument('--use_ogc', action='store_true', help='启用 OGC 难样本采样')
+    parser.add_argument('--ogc_mode', type=str, default='visual', choices=['visual', 'visual_iou'],
+                    help='OGC 亲和度模式: visual=余弦相似度, visual_iou=余弦×tile IOU')
+    parser.add_argument('--ogc_hard_ratio', type=float, default=0.5,
+                    help='OGC hard 样本占比 (0~1), 剩余走 MES 随机采样')
+    parser.add_argument('--ogc_start_epoch', type=int, default=1,
+                    help='从第几个 epoch 开始 OGC (允许前几个 epoch 用 MES 热身)')
+
     args = parser.parse_args()
     return args
 
@@ -616,5 +650,9 @@ if __name__ == '__main__':
     config.query_mode = args.query_mode
     config.train_ratio = args.train_ratio
     config.mixed_precision = not args.no_mixed_precision
+    config.use_ogc = args.use_ogc
+    config.ogc_mode = args.ogc_mode
+    config.ogc_hard_ratio = args.ogc_hard_ratio
+    config.ogc_start_epoch = args.ogc_start_epoch
 
     train_script(config)

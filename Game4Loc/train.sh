@@ -19,6 +19,7 @@ python train_gta.py --data_root <The directory of the GTA-UAV dataset> --train_p
 # Or try the performance on the UAV-VisLoc after running preparing script (../scripts/prepare_dataset/visloc.py)
 python train_visloc.py --data_root <The directory of the UAV-VisLoc dataset> --train_pairs_meta_file "same-area-drone2sate-train.json" --test_pairs_meta_file "same-area-drone2sate-test.json" --gpu_ids 0 --with_weight --k 5 --epoch 20 --model 'vit_base_patch16_rope_reg1_gap_256.sbb_in1k' --lr 0.0001 --batch_size 64
 
+# 小样本
 python train_gta.py --data_root "game4loc\dataset\GTA-UAV-LR\GTA-UAV-LR-baidu" --train_pairs_meta_file "mini-cross-area-drone2sate-train.json" --test_pairs_meta_file "mini-cross-area-drone2sate-test.json" --gpu_ids 0 --epoch 10 --model "vit_medium_patch16_rope_reg1_gap_256.sbb_in1k" --lr 0.0001 --batch_size 8
 Recall@1: 39.8048 - Recall@5: 64.7505 - Recall@10: 72.7766 - Recall@top1: 92.4078 - AP: 51.3155 - SDM@1: 0.7071 - SDM@3: 0.6384 - SDM@5: 0.5978 - Dis@1: 684.6771 - Dis@3: 901.5898 - Dis@5: 1015.6826
 ssh -p 40213 root@connect.westc.gpuhub.com
@@ -95,3 +96,18 @@ python train_gta.py \
   --lr_backbone 0.00001 \
   --lr_extra 0.0005 \
   --batch_size 32
+
+  # Baseline (MES only)
+python train_gta.py --model eva_gta --epochs 5
+
+# OGC visual, 50% hard
+python train_gta.py --model eva_gta --use_ogc --ogc_mode visual --ogc_hard_ratio 0.5 --epochs 5
+
+# OGC 延迟启动 (前2个epoch用MES热身)
+python train_gta.py --model eva_gta --use_ogc --ogc_start_epoch 3 --epochs 5
+
+# 先测试一下 小样本
+python train_gta.py --data_root "game4loc\dataset\GTA-UAV-LR\GTA-UAV-LR-baidu" --train_pairs_meta_file "mini-cross-area-drone2sate-train.json" --test_pairs_meta_file "mini-cross-area-drone2sate-test.json" --gpu_ids 0 --epoch 2 --model "vit_medium_patch16_rope_reg1_gap_256.sbb_in1k" --lr 0.0001 --batch_size 8 --use_ogc --ogc_mode visual --ogc_hard_ratio 0.5
+# 能跑 Recall@1: 40.2386 - Recall@5: 66.3774 - Recall@10: 74.4035 - Recall@top1: 91.2148 - AP: 51.6939 - SDM@1: 0.7264 - SDM@3: 0.6576 - SDM@5: 0.6163 - Dis@1: 610.9821 - Dis@3: 851.1047 - Dis@5: 979.4390
+# 跑一下baseline+OGC
+python train_gta.py --data_root "\root\autodl-tmp\dataset\GTA-UAV-LR\GTA-UAV-LR-baidu" --train_pairs_meta_file "cross-area-drone2sate-train.json" --test_pairs_meta_file "cross-area-drone2sate-test.json" --gpu_ids 0 --with_weight --k 5 --epoch 5 --model 'vit_base_patch16_rope_reg1_gap_256.sbb_in1k' --lr 0.0001 --batch_size 32 --use_ogc --ogc_mode visual --ogc_hard_ratio 0.5
