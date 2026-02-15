@@ -76,6 +76,10 @@ Recall@1: 60.2584 - Recall@5: 83.7898 - Recall@10: 88.3944 - Recall@top1: 96.521
 
 python train_gta.py --model eva_gta  --dpn_layers 0  --no_freeze_backbone  --data_root "\root\autodl-tmp\dataset\GTA-UAV-LR\GTA-UAV-LR-baidu"   --train_pairs_meta_file "cross-area-drone2sate-train.json"  --test_pairs_meta_file "cross-area-drone2sate-test.json" --gpu_ids 0 --with_weight --k 5 --epochs 5 --lr_backbone 0.0001 --lr_extra 0.0005 --batch_size 32
 Recall@1: 58.8339 - Recall@5: 83.1935 - Recall@10: 87.9086 - Recall@top1: 96.4554 - AP: 69.1889 - SDM@1: 0.8046 - SDM@3: 0.7403 - SDM@5: 0.6944 - Dis@1: 397.7988 - Dis@3: 592.1241 - Dis@5: 734.1847
+python train_gta.py --model eva_gta  --dpn_layers 0  --no_freeze_backbone  --data_root "\root\autodl-tmp\dataset\GTA-UAV-LR\GTA-UAV-LR-baidu"   --train_pairs_meta_file "cross-area-drone2sate-train.json"  --test_pairs_meta_file "cross-area-drone2sate-test.json" --gpu_ids 0 --with_weight --k 5 --epochs 5 --lr_backbone 0.0002 --lr_extra 0.0006 --batch_size 32 --global_pool gem
+Processing each query: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 9056/9056 [00:20<00:00, 448.86it/s]
+Recall@1: 51.0490 - Recall@5: 77.9483 - Recall@10: 83.7898 - Recall@top1: 94.7438 - AP: 62.3341 - SDM@1: 0.7709 - SDM@3: 0.7017 - SDM@5: 0.6561 - Dis@1: 466.2387 - Dis@3: 682.2548 - Dis@5: 816.4153
+# gem 效果相当差啊
 
 python train_gta.py \
   --model eva_gta \
